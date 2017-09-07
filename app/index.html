@@ -76,6 +76,10 @@
       </button>
     </div>
     <div class = "one column row">
+      <div>
+        <label>Upload Data</label>
+        <input type="file" on-read-file="parseInputFile($fileContents)">
+      </div>
       <button class="ui button" name="delete" ng-click="export()">
         Export
       </button>

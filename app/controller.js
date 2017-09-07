@@ -3,6 +3,30 @@ angular.module('myApp', [])
     function ($compileProvider) {
         $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|ftp|mailto|tel|file|blob):/);
 }])
+.directive('onReadFile', ['$parse', //Directive for uploading copied from https://stackoverflow.com/questions/25652959/angular-file-upload-without-local-server
+    function($parse){ 
+        return {
+            restrict: 'A',
+            scope: false, 
+            link: function(scope, ele, attrs) {
+
+                var fn = $parse(attrs.onReadFile);
+                ele.on('change', function(onChangeEvent){
+                    var reader = new FileReader();
+
+                    reader.onload = function(onLoadEvent) {
+                        scope.$apply(function(){
+                            fn(scope, {$fileContents: onLoadEvent.target.result} )
+                        })
+                    }
+
+                    reader.readAsText((onChangeEvent.srcElement || onChangeEvent.target).files[0]);
+                })
+
+            }
+        }
+    }
+])
 .controller('myCtrl', ['$scope', '$timeout', function($scope, $timeout) {
     $scope.start = Date.now();
     $scope.timeMin = "0";
@@ -32,13 +56,13 @@ angular.module('myApp', [])
     });
     change = function(){
         var cur = $('.ui.dropdown').dropdown('get value');
-        console.log(cur);
+        // console.log(cur);
         if(!cur){
-            console.log("ASDF")
+            // console.log("ASDF")
             $('.ui.checkbox').checkbox('set unchecked');
             setTime(0);
         } else if(newVal){
-            console.log("test")
+            // console.log("test")
             newVal = false;
             $('.ui.checkbox').checkbox('set unchecked');
             setTime(0);
@@ -50,7 +74,30 @@ angular.module('myApp', [])
             setTimeApply(values[cur].time);
         }
     };
-
+    $scope.parseInputFile = function(fileText){
+        // console.log(fileText);
+        var lines = fileText.split('\n');
+        lines.pop();
+        // console.log(lines)
+        var i = 0;
+        var newValues = {};
+        lines.forEach(function(ln){
+            var vals = ln.split('|');
+            // console.log(vals[0] + " " + vals[1]);
+            newValues[i] = {};
+            newValues[i].name = vals[0];
+            var times = vals[1].split(':');
+            var time = parseInt(times[0]) * 60000 + parseInt(times[1]) * 1000;
+            newValues[i].time = time;
+            newValues[i].value = i;
+            i++;
+        });
+        newValues[0].selected = true;
+        values = newValues;
+        // console.log(values);
+        $('.ui.dropdown').dropdown("change values", values);
+        $('.ui.dropdown').dropdown("set selected", 0);
+    }
     $scope.addVal = function(){
         var i = 0;
         var val = $('.ui.form').form('get value', 'element');
@@ -118,8 +165,14 @@ angular.module('myApp', [])
     $scope.getTime = function(){
         var cur = $('.ui.dropdown').dropdown('get value');
         var time = Date.now() - $scope.start;
-        values[cur].time = time;
-        setTime(time);
+        if(values[cur].time == 0){
+            values[cur].time = time;
+            setTime(time);
+        } else {
+            values[cur].time = 0;
+            setTime(0);
+        }
+            
     };
 
     var setTime = function(val){
